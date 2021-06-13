@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var mat = null;
+        var lavaMat = null;
+        var boostMat = null;
+        var particleSystem;
+        var particleSystem2;
+        var audio;
+
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        var createScene = function () {
+            var scene = new BABYLON.Scene(engine);
+            var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, -15, -150), scene);
+            camera.setTarget(new BABYLON.Vector3(0,-15,0));
+            camera.attachControl(canvas, true);
+            
+            var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+            light.intensity = 0.7;
+            
+        	scene.enablePhysics();
+            mat = new BABYLON.StandardMaterial("wood");
+            mat.diffuseTexture = new BABYLON.Texture("./wood.jpg");
+            
+            lavaMat = new BABYLON.StandardMaterial("lavaMat");
+            lavaMat.diffuseTexture = new BABYLON.Texture("./lava.jpg");
+
+            boostMat = new BABYLON.StandardMaterial("boostMat");
+            boostMat.diffuseTexture = new BABYLON.Texture("./boost.png");
+
+            particleSystem = criarParticulas(-180,70);
+            particleSystem2 = criarParticulas(0,-50);
+            audio = new BABYLON.Sound("win", "./sound.mp3", scene);
+
+            //Funil a direita
+            etapa2(scene);
+            //Canaleta direita e bagulho que roda
+            etapa3(scene);
+            //Divisor com pouca rotação a esquerda do inicio
+            etapa4(scene);
+            //Cesta
+            etapa5(scene);
+            //Bolas aleatórias para mudar direção
+            etapa6(scene);
+            //Entradas e caminho para o final
+            etapa7(scene);
+            //Final a esquerda
+            etapa8(scene);
+            //Ultimo obstaculo esquerda
+            etapa9(scene);
+            //Final a direita
+            etapa10(scene);
+
+            //Cria bolas e arremessa as laterais
+            etapa1(scene);
+
+            return scene;
+        };
+
+        function etapa1(scene){
+            var barra = BABYLON.MeshBuilder.CreateBox("box", { height: 3, width: 0.25, depth: 1 });
+            barra.rotation.z = Math.PI / 3;
+            barra.position.y = -3;
+            barra.physicsImpostor = new BABYLON.PhysicsImpostor(barra, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9 }, scene);
+            barra.material = mat;
+
+            var sentido = true;
+            var temporizador = 0;
+
+            scene.registerBeforeRender(function () {
+                if (sentido) {
+                    barra.rotate(BABYLON.Axis.Z, Math.PI / 90);
+                } else {
+                    barra.rotate(BABYLON.Axis.Z, -Math.PI / 90);
+                }
+                temporizador++;
+                if (temporizador == 30) {
+                    temporizador = 0;
+                    sentido = !sentido;
+                    criarBola(scene);
+                }
+            })
+
+            var killzone = BABYLON.MeshBuilder.CreateBox("killzone", { height: 0.5, width:600, depth: 100 });
+            killzone.position.y = -100;
+            killzone.isVisible = false;
+        }
+
+        function etapa2(scene){
+            var barra1 = BABYLON.MeshBuilder.CreateBox("barra1", { height: 3.5, width: 0.25, depth: 1 },scene);
+            barra1.rotation.z = Math.PI / 5;
+            barra1.position.y = -7;
+            barra1.position.x = 6.25;
+            barra1.physicsImpostor = new BABYLON.PhysicsImpostor(barra1, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.8 }, scene);
+            barra1.material = mat;
+            
+            var barra2 = BABYLON.MeshBuilder.CreateBox("barra2", { height: 3.5, width: 0.25, depth: 1 },scene);
+            barra2.rotation.z = - Math.PI / 5;
+            barra2.position.y = -7;
+            barra2.position.x = 9.75;
+            barra2.physicsImpostor = new BABYLON.PhysicsImpostor(barra2, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.8 }, scene);
+            barra2.material = mat;
+
+            var barra3 = BABYLON.MeshBuilder.CreateBox("barra3", { height: 4.8, width: 0.25, depth: 1 },scene);
+            barra3.position.y = -10.8;
+            barra3.position.x = 7.25;
+            barra3.physicsImpostor = new BABYLON.PhysicsImpostor(barra3, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra3.material = mat;
+
+            var barra4 = BABYLON.MeshBuilder.CreateBox("barra4", { height: 3.5, width: 0.25, depth: 1 },scene);
+            barra4.position.y = -10.1;
+            barra4.position.x = 8.75;
+            barra4.physicsImpostor = new BABYLON.PhysicsImpostor(barra4, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra4.material = mat;
+        }
+
+        function etapa3(scene) {
+            var barra1 = BABYLON.MeshBuilder.CreateBox("barra1", { height: 0.25, width: 14, depth: 1 },scene);
+            barra1.rotation.z = -Math.PI / 30;
+            barra1.position.y = -14;
+            barra1.position.x = 14.2;
+            barra1.physicsImpostor = new BABYLON.PhysicsImpostor(barra1, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra1.material = mat;
+
+            var barra2 = BABYLON.MeshBuilder.CreateBox("barra2", { height: 2, width: 0.25, depth: 1 },scene);
+            barra2.position.y = -16;
+            barra2.position.x = 25.1;
+            barra2.physicsImpostor = new BABYLON.PhysicsImpostor(barra2, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra2.material = mat;
+
+            var barra3 = BABYLON.MeshBuilder.CreateBox("barra3", { height: 0.25, width: 18, depth: 1 },scene);
+            barra3.rotation.z = Math.PI / 30;
+            barra3.position.y = -18;
+            barra3.position.x = 16.2;
+            barra3.physicsImpostor = new BABYLON.PhysicsImpostor(barra3, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra3.material = mat;
+
+            var cilindro1 = BABYLON.MeshBuilder.CreateCylinder("cylinder", {}, scene);
+            cilindro1.position.y = -19;
+            cilindro1.position.x = 3;
+            cilindro1.material = mat;
+
+            var barra4 = BABYLON.MeshBuilder.CreateBox("barra3", { height: 1.5, width: 5, depth: 0.25 },scene);
+            barra4.position.y = -19;
+            barra4.position.x = 3;
+            barra4.physicsImpostor = new BABYLON.PhysicsImpostor(barra4, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 1 }, scene);
+            barra4.material = mat;
+
+            scene.registerBeforeRender(function () {
+                barra4.rotate(BABYLON.Axis.Y, -Math.PI / 40);
+            })
+
+            var barra5 = BABYLON.MeshBuilder.CreateBox("barra5", { height: 0.25, width: 25, depth: 1 },scene);
+            barra5.rotation.z = -Math.PI / 30;
+            barra5.position.y = -25;
+            barra5.position.x = 16.2;
+            barra5.physicsImpostor = new BABYLON.PhysicsImpostor(barra5, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra5.material = mat;
+
+            var barra6 = BABYLON.MeshBuilder.CreateBox("barra6", { height: 0.25, width: 6, depth: 1 },scene);
+            barra6.rotation.z = -Math.PI / 5;
+            barra6.position.y = -22;
+            barra6.position.x = 1.5;
+            barra6.physicsImpostor = new BABYLON.PhysicsImpostor(barra6, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra6.material = mat;
+        }
+
+        function etapa4(scene) {
+            var barra1 = BABYLON.MeshBuilder.CreateBox("barra1", { height: 3, width: 0.25, depth: 1 });
+            barra1.rotation.z = Math.PI * 7 / 24;
+            barra1.position.y = -10;
+            barra1.position.x = -10;
+            barra1.physicsImpostor = new BABYLON.PhysicsImpostor(barra1, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9 }, scene);
+            barra1.material = mat;
+
+            var sentido = true;
+            var temporizador = 0;
+
+            scene.registerBeforeRender(function () {
+                if (sentido) {
+                    barra1.rotate(BABYLON.Axis.Z, Math.PI / 95);
+                } else {
+                    barra1.rotate(BABYLON.Axis.Z, -Math.PI / 95);
+                }
+                temporizador++;
+                if (temporizador == 45) {
+                    temporizador = 0;
+                    sentido = !sentido;
+                }
+            })
+
+            var barra2 = BABYLON.MeshBuilder.CreateBox("barra2", { height: 0.25, width: 14, depth: 1 },scene);
+            barra2.rotation.z = Math.PI / 30;
+            barra2.position.y = -14;
+            barra2.position.x = -25;
+            barra2.physicsImpostor = new BABYLON.PhysicsImpostor(barra2, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.3 }, scene);
+            barra2.material = mat;
+        }
+
+        function etapa5(scene) {
+            var cesta = new BABYLON.Mesh("cesta", scene);
+
+            var barra1 = BABYLON.MeshBuilder.CreateBox("barra1", { height: 0.25, width: 2, depth: 1 },scene);
+            barra1.rotation.z = -Math.PI / 3;
+            barra1.position.x = -3.8;
+            barra1.physicsImpostor = new BABYLON.PhysicsImpostor(barra1, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
+            barra1.material = mat;
+            cesta.addChild(barra1);
+
+            var barra2 = BABYLON.MeshBuilder.CreateBox("barra2", { height: 0.25, width: 3, depth: 1 },scene);
+            barra2.position.y = -0.8;
+            barra2.position.x = -1.9;
+            barra2.physicsImpostor = new BABYLON.PhysicsImpostor(barra2, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
+            barra2.material = mat;
+            cesta.addChild(barra2);
+
+            var barra3 = BABYLON.MeshBuilder.CreateBox("barra3", { height: 0.25, width: 2, depth: 1 },scene);
+            barra3.rotation.z = Math.PI / 3;
+            barra3.physicsImpostor = new BABYLON.PhysicsImpostor(barra3, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
+            barra3.material = mat;
+            cesta.addChild(barra3);
+
+            cesta.position.x = - 37;
+            cesta.position.y = -17;
+            cesta.rotation.y = Math.PI;
+
+            temporizador = 0;
+            sentido = 0;
+            scene.registerBeforeRender(function () {
+                if(sentido==0){
+                    temporizador++;
+                }else if (sentido == 1) {
+                    temporizador++;
+                    cesta.position.y += 0.07;
+                }else if(sentido == 5){
+                    cesta.position.y -= 0.14;
+                    temporizador+=2;
+                }else if(sentido == 2){
+                    cesta.rotate(BABYLON.Axis.Z, -Math.PI / 60);
+                    temporizador+=8;
+                }else if(sentido == 4){
+                    cesta.rotate(BABYLON.Axis.Z, 2*Math.PI / 60);
+                    temporizador+=16;
+                }else if(sentido == 3){
+                    temporizador+=8;
+                }
+                if (temporizador > 200) {
+                    temporizador = 0;
+                    sentido++;
+                    if(sentido == 6){
+                        sentido = 0;    
+                    }
+                }
+            })
+        }
+
+        function etapa6(scene) {
+            var barra1 = BABYLON.MeshBuilder.CreateBox("barra1", { height: 0.25, width: 50, depth: 1 },scene);
+            barra1.rotation.z = Math.PI / 30;
+            barra1.position.y = -6;
+            barra1.position.x = -63;
+            barra1.physicsImpostor = new BABYLON.PhysicsImpostor(barra1, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra1.material = mat;
+
+            var barra2 = BABYLON.MeshBuilder.CreateBox("barra2", { height: 0.25, width: 18, depth: 1 },scene);
+            barra2.rotation.z = Math.PI / 30;
+            barra2.position.y = -22;
+            barra2.position.x = -42;
+            barra2.physicsImpostor = new BABYLON.PhysicsImpostor(barra2, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.8 }, scene);
+            barra2.material = mat;
+
+            var obstaculos = new BABYLON.Mesh("obstaculos", scene);
+            for(var i = 0; i < 60; i++){
+                var sphere = BABYLON.Mesh.CreateSphere("sphere1", 16, 0.8, scene);
+                sphere.position.y = Math.random()*20;
+                sphere.position.x = Math.random()*30;
+                sphere.material = mat;
+                sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 0, restitution: 0.9 }, scene);
+                obstaculos.addChild(sphere);
+            }
+            obstaculos.position.x = -85;
+            obstaculos.position.y = -50;
+
+            var barra3 = BABYLON.MeshBuilder.CreateBox("barra3", { height: 48, width: 0.25, depth: 1 },scene);
+            barra3.position.y = -46.8;
+            barra3.position.x = -51;
+            barra3.physicsImpostor = new BABYLON.PhysicsImpostor(barra3, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.8 }, scene);
+            barra3.material = mat;
+
+            var barra4 = BABYLON.MeshBuilder.CreateBox("barra4", { height: 62.3, width: 0.25, depth: 1 },scene);
+            barra4.position.y = -39.65;
+            barra4.position.x = -88;
+            barra4.physicsImpostor = new BABYLON.PhysicsImpostor(barra4, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.8 }, scene);
+            barra4.material = mat;
+
+            var barra5 = BABYLON.MeshBuilder.CreateBox("barra5", { height: 70, width: 0.25, depth: 1 },scene);
+            barra5.position.y = -35.8;
+            barra5.position.x = -92;
+            barra5.physicsImpostor = new BABYLON.PhysicsImpostor(barra5, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.8 }, scene);
+            barra5.material = mat;
+        }
+
+        function etapa7(scene) {
+            var barra1 = BABYLON.MeshBuilder.CreateBox("barra1", { height: 20, width: 0.25, depth: 1 },scene);
+            barra1.position.y = -60.8;
+            barra1.position.x = -58.4;
+            barra1.physicsImpostor = new BABYLON.PhysicsImpostor(barra1, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.8 }, scene);
+            barra1.material = mat;
+
+            var barra2 = BABYLON.MeshBuilder.CreateBox("barra2", { height: 20, width: 0.25, depth: 1 },scene);
+            barra2.position.y = -60.8;
+            barra2.position.x = -65.8;
+            barra2.physicsImpostor = new BABYLON.PhysicsImpostor(barra2, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.8 }, scene);
+            barra2.material = mat;
+
+            var barra3 = BABYLON.MeshBuilder.CreateBox("barra3", { height: 20, width: 0.25, depth: 1 },scene);
+            barra3.position.y = -60.8;
+            barra3.position.x = -73.2;
+            barra3.physicsImpostor = new BABYLON.PhysicsImpostor(barra3, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.8 }, scene);
+            barra3.material = mat;
+
+            var barra4 = BABYLON.MeshBuilder.CreateBox("barra4", { height: 20, width: 0.25, depth: 1 },scene);
+            barra4.position.y = -60.8;
+            barra4.position.x = -80.6;
+            barra4.physicsImpostor = new BABYLON.PhysicsImpostor(barra4, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.8 }, scene);
+            barra4.material = mat;
+
+            var barra5 = BABYLON.MeshBuilder.CreateBox("lava", { height: 0.25, width: 7.4, depth: 1 },scene);
+            barra5.position.y = -70.8;
+            barra5.position.x = -62.1;
+            barra5.material = lavaMat;
+            
+            var barra6 = BABYLON.MeshBuilder.CreateBox("lava", { height: 0.25, width: 7.4, depth: 1 },scene);
+            barra6.position.y = -70.8;
+            barra6.position.x = -76.9;
+            barra6.material = lavaMat;
+
+            var barra7 = BABYLON.MeshBuilder.CreateBox("barra7", { height: 0.5, width: 60, depth: 1.5 },scene);
+            barra7.rotation.z = Math.PI / 30;
+            barra7.position.y = -75.8;
+            barra7.position.x = -80.6;
+            barra7.physicsImpostor = new BABYLON.PhysicsImpostor(barra7, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
+            barra7.material = mat;
+        }
+
+        function etapa8(scene) {
+            var mola = BABYLON.MeshBuilder.CreateBox("mola", { height: 2, width: 4, depth: 2 },scene);
+            mola.rotation.z = Math.PI / 30;
+            mola.position.y = -81;
+            mola.position.x = -114;
+            mola.physicsImpostor = new BABYLON.PhysicsImpostor(mola, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
+            mola.material = boostMat;
+
+            var cesta = new BABYLON.Mesh("cesta", scene);
+
+            var barra1 = BABYLON.MeshBuilder.CreateBox("barra1", { height: 0.5, width: 4, depth: 2 },scene);
+            barra1.rotation.z = -Math.PI / 3;
+            barra1.position.x = -6.85;
+            barra1.physicsImpostor = new BABYLON.PhysicsImpostor(barra1, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
+            barra1.material = mat;
+            cesta.addChild(barra1);
+
+            var barra2 = BABYLON.MeshBuilder.CreateBox("finalEsq", { height: 0.5, width: 12, depth: 2 },scene);
+            barra2.position.y = -1.8;
+            barra2.physicsImpostor = new BABYLON.PhysicsImpostor(barra2, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
+            barra2.material = mat;
+            cesta.addChild(barra2);
+
+            var barra3 = BABYLON.MeshBuilder.CreateBox("barra3", { height: 0.5, width: 4, depth: 2 },scene);
+            barra3.rotation.z = Math.PI / 3;
+            barra3.position.x = 6.85;
+            barra3.physicsImpostor = new BABYLON.PhysicsImpostor(barra3, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
+            barra3.material = mat;
+            cesta.addChild(barra3);
+
+            cesta.position.y = -70;
+            cesta.position.x = -180;
+        }
+
+        function etapa9(scene) {
+            var barra1 = BABYLON.MeshBuilder.CreateBox("barra1", { height: 0.25, width: 30, depth: 1 },scene);
+            barra1.rotation.z = Math.PI / 30;
+            barra1.position.y = -30;
+            barra1.position.x = 16.2;
+            barra1.physicsImpostor = new BABYLON.PhysicsImpostor(barra1, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra1.material = mat;
+
+            var barra2 = BABYLON.MeshBuilder.CreateBox("barra2", { height: 0.25, width: 6, depth: 1 },scene);
+            barra2.rotation.z = Math.PI / 5;
+            barra2.position.y = -26.7;
+            barra2.position.x = 33.3;
+            barra2.physicsImpostor = new BABYLON.PhysicsImpostor(barra2, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra2.material = mat;
+
+            var barra3 = BABYLON.MeshBuilder.CreateBox("barra3", { height: 0.25, width: 6, depth: 1 },scene);
+            barra3.rotation.z = -Math.PI / 5;
+            barra3.position.y = -35;
+            barra3.position.x = -4;
+            barra3.physicsImpostor = new BABYLON.PhysicsImpostor(barra3, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra3.material = mat;
+
+            var barra4 = BABYLON.MeshBuilder.CreateBox("barra4", { height: 0.25, width: 5, depth: 1 },scene);
+            barra4.position.y = -36.72;
+            barra4.position.x = 0.88;
+            barra4.physicsImpostor = new BABYLON.PhysicsImpostor(barra4, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            barra4.material = mat;
+
+            var barra5 = BABYLON.MeshBuilder.CreateBox("barra5", { height: 0.25, width: 5, depth: 1 },scene);
+            barra5.position.y = -38.7;
+            barra5.position.x = 6.88;
+            barra5.physicsImpostor = new BABYLON.PhysicsImpostor(barra5, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.3 }, scene);
+            barra5.material = mat;
+
+            var barra6 = BABYLON.MeshBuilder.CreateBox("barra6", { height: 0.25, width: 5, depth: 1 },scene);
+            barra6.position.y = -40.72;
+            barra6.position.x = 12.88;
+            barra6.physicsImpostor = new BABYLON.PhysicsImpostor(barra6, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.3 }, scene);
+            barra6.material = mat;
+
+            var barra7 = BABYLON.MeshBuilder.CreateBox("barra7", { height: 0.25, width: 5, depth: 1 },scene);
+            barra7.position.y = -42.72;
+            barra7.position.x = 18.88;
+            barra7.physicsImpostor = new BABYLON.PhysicsImpostor(barra7, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.3 }, scene);
+            barra7.material = mat;
+
+            var barra8 = BABYLON.MeshBuilder.CreateBox("barra8", { height: 0.25, width: 5, depth: 1 },scene);
+            barra8.position.y = -44.72;
+            barra8.position.x = 24.88;
+            barra8.physicsImpostor = new BABYLON.PhysicsImpostor(barra8, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.3 }, scene);
+            barra8.material = mat;
+
+            var barra9 = BABYLON.MeshBuilder.CreateBox("barra9", { height: 0.25, width: 5, depth: 1 },scene);
+            barra9.position.y = -46.72;
+            barra9.position.x = 30.88;
+            barra9.physicsImpostor = new BABYLON.PhysicsImpostor(barra9, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.3 }, scene);
+            barra9.material = mat;
+
+            var barra10 = BABYLON.MeshBuilder.CreateBox("barra10", { height: 0.25, width: 5, depth: 1 },scene);
+            barra10.rotation.z = Math.PI / 5;
+            barra10.position.y = -48.72;
+            barra10.position.x = 36.88;
+            barra10.physicsImpostor = new BABYLON.PhysicsImpostor(barra10, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.3 }, scene);
+            barra10.material = mat;
+        }
+
+        function etapa10(scene) {
+            var mola = BABYLON.MeshBuilder.CreateBox("mola2", { height: 2, width: 4, depth: 2 },scene);
+            mola.rotation.z = -Math.PI / 30;
+            mola.position.y = -55;
+            mola.position.x = 30.5;
+            mola.physicsImpostor = new BABYLON.PhysicsImpostor(mola, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
+            mola.material = boostMat;
+
+            var finalDir = BABYLON.MeshBuilder.CreateCylinder("finalDir", {diameter:5, height:0.1}, scene);
+            finalDir.rotation.z = Math.PI / 2;
+            finalDir.position.y = -50;
+            finalDir.physicsImpostor = new BABYLON.PhysicsImpostor(finalDir, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.5 }, scene);
+            var alvoMat = new BABYLON.StandardMaterial("alvoMat");
+            alvoMat.diffuseTexture = new BABYLON.Texture("./alvo.png");
+            finalDir.material = alvoMat;
+        }   
+
+        function criarBola(scene){
+            var box = new BABYLON.MeshBuilder.CreateBox("box", { size: 0.05 }, scene);
+            box.isVisible = false;
+            var myMaterial = new BABYLON.StandardMaterial("myMaterial", scene);
+            myMaterial.diffuseColor = new BABYLON.Color3(Math.random(),Math.random(),Math.random());
+            var sphere = BABYLON.Mesh.CreateSphere("bola", 16, 1, scene);
+            sphere.position.y = 2;
+            sphere.material = myMaterial;
+            sphere.physicsImpostor =  new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 2, friction: 0, restitution: 0.9 }, scene);
+
+            var list = scene.getMeshesById("lava");
+            var killzone = scene.getMeshById("killzone");
+            var mola = scene.getMeshById("mola");
+            var mola2 = scene.getMeshById("mola2");
+            var finalEsq = scene.getMeshById("finalEsq");
+            var finalDir = scene.getMeshById("finalDir");
+
+            scene.registerBeforeRender(function () {
+                if (sphere.intersectsMesh(killzone, true)) {
+                    sphere.dispose();
+                }
+            });
+
+            sphere.actionManager = new BABYLON.ActionManager(scene);
+            for (var colliderIndex = 0; colliderIndex < list.length; colliderIndex++) {
+                var collider = list[colliderIndex];
+                sphere.actionManager.registerAction(
+                    new BABYLON.ExecuteCodeAction(
+                        {
+                            trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
+                            parameter: collider
+                        },
+                        function () {
+                            BABYLON.ParticleHelper.CreateAsync("explosion", scene).then((set) => {
+                                box.position = sphere.position;
+                                sphere.dispose();
+                                
+                                set.systems.forEach(s => {
+                                    s.emitter = box;
+                                    s.disposeOnStop = true;
+                                });
+                                set.start();
+                            });
+                            
+                        }
+                    )
+                );
+            }
+            sphere.actionManager.registerAction(
+                new BABYLON.ExecuteCodeAction(
+                    {
+                        trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
+                        parameter: finalEsq
+                    },
+                    function () {
+                        particleSystem.start();
+                        audio.play();
+                    }
+                )
+            );
+            sphere.actionManager.registerAction(
+                new BABYLON.ExecuteCodeAction(
+                    {
+                        trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
+                        parameter: finalDir
+                    },
+                    function () {
+                        particleSystem2.start();
+                        audio.play();
+                    }
+                )
+            );
+            sphere.actionManager.registerAction(
+                new BABYLON.ExecuteCodeAction(
+                    {
+                        trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
+                        parameter: mola
+                    },
+                    function () {
+                        sphere.physicsImpostor.applyImpulse(sphere.up.scale(80), BABYLON.Vector3.Zero());
+                    }
+                )
+            );
+            sphere.actionManager.registerAction(
+                new BABYLON.ExecuteCodeAction(
+                    {
+                        trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
+                        parameter: mola2
+                    },
+                    function () {
+                        direcao = new BABYLON.Vector3(-1, 1, 0);
+                        sphere.physicsImpostor.applyImpulse(direcao.scale(40), BABYLON.Vector3.Zero());
+                    }
+                )
+            );
+        }
+
+        function criarParticulas(x,y){
+            particleSystem = new BABYLON.ParticleSystem("particles", 5000, scene);
+            particleSystem.particleTexture = new BABYLON.Texture("./trophy.png", scene);
+
+            particleSystem.emitter= new BABYLON.Vector3(x,y,0);
+
+            particleSystem.minEmitBox = new BABYLON.Vector3(0.5, 0.325,0.05);
+            particleSystem.maxEmitBox = new BABYLON.Vector3(-0.5, -0.325,-0.05); 
+
+            particleSystem.color1 = new BABYLON.Color4(1, 0.513, 0, 1.0);
+            particleSystem.color2 = new BABYLON.Color4(0.415, 0.051, 0.678, 1.0);
+            particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
+
+            particleSystem.minSize = 1;
+            particleSystem.maxSize = 5;
+
+            particleSystem.minLifeTime = 4;
+            particleSystem.maxLifeTime = 8;
+
+            particleSystem.emitRate = 400;
+
+            // Blend mode : BLENDMODE_ONEONE, or BLENDMODE_STANDARD
+            particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+
+            // Set the gravity of all particles
+            particleSystem.gravity = new BABYLON.Vector3(0, 0, 0);
+
+            // Direction of each particle after it has been emitted
+            particleSystem.direction1 = new BABYLON.Vector3(15, 10, -2);
+            particleSystem.direction2 = new BABYLON.Vector3(-15, 10, -2);
+
+            // Angular speed, in radians
+            particleSystem.minAngularSpeed = 0;
+            particleSystem.maxAngularSpeed = Math.PI;
+
+            // Speed
+            particleSystem.minEmitPower = 1;
+            particleSystem.maxEmitPower = 1.2;
+            particleSystem.updateSpeed = 0.025;
+
+            particleSystem.targetStopDuration = 0.5;
+
+            return particleSystem;
+        }
+
+                window.initFunction = async function() {               
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene        
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
