@@ -71,7 +71,7 @@
             boostMat = new BABYLON.StandardMaterial("boostMat");
             boostMat.diffuseTexture = new BABYLON.Texture("./boost.png");
 
-            particleSystem = criarParticulas(-180,-70);
+            particleSystem = criarParticulas(-195,-70);
             particleSystem2 = criarParticulas(0,-50);
             audio = new BABYLON.Sound("win", "./sound.mp3", scene);
 
@@ -394,30 +394,48 @@
             mola.physicsImpostor = new BABYLON.PhysicsImpostor(mola, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
             mola.material = boostMat;
 
-            var cesta = new BABYLON.Mesh("cesta", scene);
+            var cesta2 = new BABYLON.Mesh("cesta2", scene);
 
             var barra1 = BABYLON.MeshBuilder.CreateBox("barra1", { height: 0.5, width: 4, depth: 2 },scene);
             barra1.rotation.z = -Math.PI / 3;
             barra1.position.x = -6.85;
             barra1.physicsImpostor = new BABYLON.PhysicsImpostor(barra1, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
             barra1.material = mat;
-            cesta.addChild(barra1);
+            cesta2.addChild(barra1);
 
             var barra2 = BABYLON.MeshBuilder.CreateBox("finalEsq", { height: 0.5, width: 12, depth: 2 },scene);
             barra2.position.y = -1.8;
             barra2.physicsImpostor = new BABYLON.PhysicsImpostor(barra2, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
             barra2.material = mat;
-            cesta.addChild(barra2);
+            cesta2.addChild(barra2);
 
             var barra3 = BABYLON.MeshBuilder.CreateBox("barra3", { height: 0.5, width: 4, depth: 2 },scene);
             barra3.rotation.z = Math.PI / 3;
             barra3.position.x = 6.85;
             barra3.physicsImpostor = new BABYLON.PhysicsImpostor(barra3, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.1 }, scene);
             barra3.material = mat;
-            cesta.addChild(barra3);
+            cesta2.addChild(barra3);
 
-            cesta.position.y = -70;
-            cesta.position.x = -180;
+            cesta2.position.y = -70;
+            cesta2.position.x = -190;
+
+            let temporizador = 0;
+            let sentido = true;
+            scene.registerBeforeRender(function () {
+                if (sentido) {
+                    cesta2.position.x += 0.1; 
+                    console.log(particleSystem2);
+                    particleSystem.emitter.x += 0.1;
+                } else {
+                    cesta2.position.x -= 0.1; 
+                    particleSystem.emitter.x -= 0.1;
+                }
+                temporizador++;
+                if (temporizador == 300) {
+                    temporizador = 0;
+                    sentido = !sentido;
+                }
+            })
         }
 
         function etapa9(scene) {
@@ -601,48 +619,48 @@
         }
 
         function criarParticulas(x,y){
-            particleSystem = new BABYLON.ParticleSystem("particles", 5000, scene);
-            particleSystem.particleTexture = new BABYLON.Texture("./trophy.png", scene);
+            particulas = new BABYLON.ParticleSystem("particles", 5000, scene);
+            particulas.particleTexture = new BABYLON.Texture("./trophy.png", scene);
 
-            particleSystem.emitter= new BABYLON.Vector3(x,y,0);
+            particulas.emitter= new BABYLON.Vector3(x,y,0);
 
-            particleSystem.minEmitBox = new BABYLON.Vector3(0.5, 0.325,0.05);
-            particleSystem.maxEmitBox = new BABYLON.Vector3(-0.5, -0.325,-0.05); 
+            particulas.minEmitBox = new BABYLON.Vector3(0.5, 0.325,0.05);
+            particulas.maxEmitBox = new BABYLON.Vector3(-0.5, -0.325,-0.05); 
 
-            particleSystem.color1 = new BABYLON.Color4(1, 0.513, 0, 1.0);
-            particleSystem.color2 = new BABYLON.Color4(0.415, 0.051, 0.678, 1.0);
-            particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
+            particulas.color1 = new BABYLON.Color4(1, 0.513, 0, 1.0);
+            particulas.color2 = new BABYLON.Color4(0.415, 0.051, 0.678, 1.0);
+            particulas.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
 
-            particleSystem.minSize = 1;
-            particleSystem.maxSize = 5;
+            particulas.minSize = 1;
+            particulas.maxSize = 5;
 
-            particleSystem.minLifeTime = 4;
-            particleSystem.maxLifeTime = 8;
+            particulas.minLifeTime = 4;
+            particulas.maxLifeTime = 8;
 
-            particleSystem.emitRate = 400;
+            particulas.emitRate = 400;
 
             // Blend mode : BLENDMODE_ONEONE, or BLENDMODE_STANDARD
-            particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+            particulas.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
 
             // Set the gravity of all particles
-            particleSystem.gravity = new BABYLON.Vector3(0, 0, 0);
+            particulas.gravity = new BABYLON.Vector3(0, 0, 0);
 
             // Direction of each particle after it has been emitted
-            particleSystem.direction1 = new BABYLON.Vector3(15, 10, -2);
-            particleSystem.direction2 = new BABYLON.Vector3(-15, 10, -2);
+            particulas.direction1 = new BABYLON.Vector3(15, 10, -2);
+            particulas.direction2 = new BABYLON.Vector3(-15, 10, -2);
 
             // Angular speed, in radians
-            particleSystem.minAngularSpeed = 0;
-            particleSystem.maxAngularSpeed = Math.PI;
+            particulas.minAngularSpeed = 0;
+            particulas.maxAngularSpeed = Math.PI;
 
             // Speed
-            particleSystem.minEmitPower = 1;
-            particleSystem.maxEmitPower = 1.2;
-            particleSystem.updateSpeed = 0.025;
+            particulas.minEmitPower = 1;
+            particulas.maxEmitPower = 1.2;
+            particulas.updateSpeed = 0.025;
 
-            particleSystem.targetStopDuration = 0.5;
+            particulas.targetStopDuration = 0.5;
 
-            return particleSystem;
+            return particulas;
         }
 
                 window.initFunction = async function() {               
